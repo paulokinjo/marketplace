@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Marketplace.Framework;
+using Microsoft.AspNetCore.Mvc;
 using static Marketplace.Contracts.ClassifiedAds;
 
 namespace Marketplace.Api
@@ -6,9 +7,9 @@ namespace Marketplace.Api
     [Route("/ad")]
     public class ClassifiedAdsCommandsApi : Controller
     {
-        private readonly ClassifiedAdsApplicationService applicationService;
+        private readonly IApplicationService applicationService;
 
-        public ClassifiedAdsCommandsApi(ClassifiedAdsApplicationService applicationService)
+        public ClassifiedAdsCommandsApi(IApplicationService applicationService)
             => this.applicationService = applicationService;
 
         [HttpPost]

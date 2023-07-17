@@ -1,28 +1,30 @@
 ﻿using Marketplace.Domain;
+using Marketplace.Mongo;
 
 namespace Marketplace
 {
     public class ClassifiedAdRepository
         : IClassifiedAdRepository, IDisposable
     {
-        private readonly IAsyncDocumentSession _session;
+        private readonly IMongoRepository<ClassifiedAd> mongoClassifiedAd;
 
-        public ClassifiedAdRepository(IAsyncDocumentSession session)
-            => _session = session;
-
-        public Task<bool> Exists(ClassifiedAdId id)
-            => _session.Advanced.ExistsAsync(EntityId(id));
-
-        public Task<ClassifiedAd> Load(ClassifiedAdId id)
-            => _session.LoadAsync<ClassifiedAd>(EntityId(id));
-
-        public async Task Save(ClassifiedAd entity)
+        public ClassifiedAdRepository(IMongoRepository<ClassifiedAd> mongoClassifiedAd)
         {
-            await _session.StoreAsync(entity, EntityId(entity.Id));
-            await _session.SaveChangesAsync();
+            this.mongoClassifiedAd = mongoClassifiedAd;
         }
 
-        public void Dispose() => _session.Dispose();
+        public async Task<bool> Exists(ClassifiedAdId id)
+            => await mongoClassifiedAd.FindOneAsync(c => c.ClassifiedAdId == id) != null;
+
+        public async Task<ClassifiedAd> Load(ClassifiedAdId id)
+            => await mongoClassifiedAd.FindOneAsync(c => c.ClassifiedAdId == id);
+
+        public async Task Save(ClassifiedAd entity) =>
+            await mongoClassifiedAd.InsertOneAsync(entity);
+
+        public void Dispose() 
+        {
+        }
 
         private static string EntityId(ClassifiedAdId id)
             => $"ClassifiedAd/{id}";

@@ -2,11 +2,12 @@
 
 namespace Marketplace.Domain
 {
+    [BsonCollection("ClassifiedAds")]
     public class ClassifiedAd : Entity
     {
         public UserId OwnerId { get; private set; } = default!;
         public UserId ApprovedBy { get; } = default!;
-        public ClassifiedAdId Id { get; private set; } = default!;
+        public ClassifiedAdId ClassifiedAdId { get; private set; } = default!;
         public ClassifiedAdTitle Title { get; private set; } = default!;
         public ClassifiedAdText Text { get; private set; } = default!;
         public Price Price { private get; set; } = default!;
@@ -22,27 +23,27 @@ namespace Marketplace.Domain
         public void SetTitle(ClassifiedAdTitle title) =>
             Apply(new Events.ClassifiedAdTitleChanged
             {
-                Id = Id,
+                Id = ClassifiedAdId,
                 Title = title
             });
 
         public void UpdateText(ClassifiedAdText text) =>
             Apply(new Events.ClassifiedAdTextUpdated
             {
-                Id = Id,
+                Id = ClassifiedAdId,
                 AdText = text
             });
 
         public void UpdatePrice(Price price) =>
             Apply(new Events.ClassifiedAdPriceUpdated
             {
-                Id = Id,
+                Id = ClassifiedAdId,
                 Price = price.Amount,
                 CurrencyCode = price.Currency.CurrencyCode
             });
 
         public void RequestToPublish() =>
-            Apply(new Events.ClassifiedAdSentForReview { Id = Id });
+            Apply(new Events.ClassifiedAdSentForReview { Id = ClassifiedAdId });
 
 
         protected override void When(object @event)
@@ -50,7 +51,7 @@ namespace Marketplace.Domain
             switch (@event)
             {
                 case Events.ClassifiedAdCreated e:
-                    Id = new ClassifiedAdId(e.Id);
+                    ClassifiedAdId = new ClassifiedAdId(e.Id);
                     OwnerId = new UserId(e.OwnerId);
                     State = ClassifiedAdState.Inactive;
                     break;
@@ -70,7 +71,7 @@ namespace Marketplace.Domain
         }
         protected override void EnsureValidState()
         {
-            var valid = Id is not null &&
+            var valid = ClassifiedAdId is not null &&
                 OwnerId is not null &&
                 (State switch
                 {
