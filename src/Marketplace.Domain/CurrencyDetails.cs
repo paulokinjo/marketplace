@@ -10,4 +10,9 @@ public class Currency : Value<Currency>
     {
         InUse = false,
     };
+
+    public Currency()
+    {
+
+    }
 }

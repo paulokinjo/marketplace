@@ -4,7 +4,7 @@ namespace Marketplace.Domain
 {
     public sealed class UserId : Value<UserId>
     {
-        private readonly Guid value;
+        public Guid Value { get; protected set; }
 
         public UserId(Guid value)
         {
@@ -14,9 +14,14 @@ namespace Marketplace.Domain
                     "User id cannot be null");
             }
 
-            this.value = value;
+            this.Value = value;
         }
 
-        public static implicit operator Guid(UserId self) => self.value;
+        public static implicit operator Guid(UserId self) => self.Value;
+
+        public UserId()
+        {
+
+        }
     }
 }

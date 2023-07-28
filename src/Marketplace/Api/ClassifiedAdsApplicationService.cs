@@ -51,12 +51,12 @@ namespace Marketplace.Api
                 new ClassifiedAdId(cmd.Id),
             new UserId(cmd.OwnerId));
 
-            await repository.Save(classifiedAd);
+            await repository.Add(classifiedAd);
         }
 
         private async Task HandleUpdate(Guid classifiedAdId, Action<ClassifiedAd> operation)
         {
-            var classifiedAd = await repository.Load(classifiedAdId);
+            var classifiedAd = await repository.Load(new ClassifiedAdId(classifiedAdId));
             if (classifiedAd == null)
             {
                 throw new InvalidOperationException($"Entity with id {classifiedAdId} cannot be found");
@@ -64,7 +64,7 @@ namespace Marketplace.Api
 
             operation(classifiedAd);
 
-            await repository.Save(classifiedAd);
+            await repository.Update(classifiedAd);
         }
     }
 }

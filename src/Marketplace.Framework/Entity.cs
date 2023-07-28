@@ -1,58 +1,33 @@
-﻿using MongoDB.Bson;
-using MongoDB.Bson.Serialization.Attributes;
+﻿using System;
+using System.Collections.Generic;
+using System.Linq;
+using System.Text;
+using System.Threading.Tasks;
 
 namespace Marketplace.Framework
 {
-    [AttributeUsage(AttributeTargets.Class, Inherited = false)]
-    public class BsonCollectionAttribute : Attribute
+    public abstract class Entity<TId> : IInternalEventHandler
+       where TId : Value<TId>
     {
-        public string CollectionName { get; }
+        private readonly Action<object> _applier;
 
-        public BsonCollectionAttribute(string collectionName) => CollectionName = collectionName;
-    }
-    public interface IDocument
-    {
-        [BsonId]
-        [BsonRepresentation(BsonType.String)]
-        ObjectId Id { get; set; }
+        public TId Id { get; protected set; }
 
-        DateTime CreatedAt { get; }
-    }
-
-    public abstract class Entity : IDocument
-    {
-        private readonly List<object> events;
-
-        private ObjectId _Id;
-        public ObjectId Id
+        public Entity()
         {
-            get => _Id;
-            set
-            {
-                _Id = value;
-                CreatedAt = Id.CreationTime;
-            }
+
         }
 
-        [BsonExtraElements]
-        public Dictionary<string, object> ExtraElements { get; set; }
+        protected Entity(Action<object> applier) => _applier = applier;
 
-        public DateTime CreatedAt { get; set; }
-
-        protected Entity() => events = new List<object>();
+        protected abstract void When(object @event);
 
         protected void Apply(object @event)
         {
             When(@event);
-            EnsureValidState();
-            events.Add(@event);
+            _applier(@event);
         }
 
-        protected abstract void When(object @event);
-        protected abstract void EnsureValidState();
-
-        public IEnumerable<object> GetChanges() => events.AsEnumerable();
-
-        public void ClearChanges() => events.Clear();
+        void IInternalEventHandler.Handle(object @event) => When(@event);
     }
 }

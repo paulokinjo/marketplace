@@ -5,8 +5,12 @@ namespace Marketplace.Domain
 {
     public class ClassifiedAdTitle : Value<ClassifiedAdTitle>
     {
-        public string Value { get; }
+        public string Value { get; protected set; }
 
+        public ClassifiedAdTitle()
+        {
+
+        }
         public ClassifiedAdTitle(string value)
         {
             CheckValidity(value);

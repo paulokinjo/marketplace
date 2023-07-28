@@ -1,18 +1,18 @@
 ﻿using System.Collections;
+using System.Diagnostics.CodeAnalysis;
 using System.Reflection;
 
 namespace Marketplace.Framework
 {
     public abstract class Value<T> where T : Value<T>
     {
+        [SuppressMessage("ReSharper", "StaticMemberInGenericType")]
         private static readonly Member[] Members = GetMembers().ToArray();
 
         public override bool Equals(object other)
         {
             if (ReferenceEquals(null, other)) return false;
             if (ReferenceEquals(this, other)) return true;
-
-            var members = Members;
 
             return other.GetType() == typeof(T) && Members.All(m =>
             {

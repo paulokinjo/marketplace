@@ -13,6 +13,11 @@ namespace Marketplace.Domain
             Currency = currency;
         }
 
+        public Money()
+        {
+
+        }
+
         protected Money(decimal amount, string currencyCode, ICurrencyLookup currencyLookup)
         {
             if (string.IsNullOrEmpty(currencyCode))

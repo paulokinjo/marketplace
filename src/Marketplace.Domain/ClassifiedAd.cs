@@ -3,55 +3,98 @@
 namespace Marketplace.Domain
 {
     [BsonCollection("ClassifiedAds")]
-    public class ClassifiedAd : Entity
+    public class ClassifiedAd : AggregateRoot<ClassifiedAdId>
     {
-        public UserId OwnerId { get; private set; } = default!;
-        public UserId ApprovedBy { get; } = default!;
-        public ClassifiedAdId ClassifiedAdId { get; private set; } = default!;
-        public ClassifiedAdTitle Title { get; private set; } = default!;
-        public ClassifiedAdText Text { get; private set; } = default!;
-        public Price Price { private get; set; } = default!;
-        public ClassifiedAdState State { get; private set; } = default!;
+        public UserId OwnerId { get; private set; }
+        public ClassifiedAdTitle Title { get; private set; }
+        public ClassifiedAdText Text { get; private set; }
+        public Price Price { get; private set; }
+        public ClassifiedAdState State { get; private set; }
+        public UserId ApprovedBy { get; private set; }
+        public List<Picture> Pictures { get; private set; }
 
-        public ClassifiedAd(ClassifiedAdId id, UserId ownerId) =>
-            Apply(new Events.ClassifiedAdCreated
-            {
-                Id = id,
-                OwnerId = ownerId
-            });
+        public ClassifiedAd(ClassifiedAdId id, UserId ownerId)
+        {
+            Pictures = new List<Picture>();
+            Apply(
+                new Events.ClassifiedAdCreated
+                {
+                    Id = id,
+                    OwnerId = ownerId
+                }
+            );
+        }
 
         public void SetTitle(ClassifiedAdTitle title) =>
-            Apply(new Events.ClassifiedAdTitleChanged
-            {
-                Id = ClassifiedAdId,
-                Title = title
-            });
+            Apply(
+                new Events.ClassifiedAdTitleChanged
+                {
+                    Id = AggregateId,
+                    Title = title
+                }
+            );
 
         public void UpdateText(ClassifiedAdText text) =>
-            Apply(new Events.ClassifiedAdTextUpdated
-            {
-                Id = ClassifiedAdId,
-                AdText = text
-            });
+            Apply(
+                new Events.ClassifiedAdTextUpdated
+                {
+                    Id = AggregateId,
+                    AdText = text
+                }
+            );
 
         public void UpdatePrice(Price price) =>
-            Apply(new Events.ClassifiedAdPriceUpdated
-            {
-                Id = ClassifiedAdId,
-                Price = price.Amount,
-                CurrencyCode = price.Currency.CurrencyCode
-            });
+            Apply(
+                new Events.ClassifiedAdPriceUpdated
+                {
+                    Id = AggregateId,
+                    Price = price.Amount,
+                    CurrencyCode = price.Currency.CurrencyCode
+                }
+            );
 
         public void RequestToPublish() =>
-            Apply(new Events.ClassifiedAdSentForReview { Id = ClassifiedAdId });
+            Apply(new Events.ClassifiedAdSentForReview { Id = AggregateId });
 
+        public void AddPicture(Uri pictureUri, PictureSize size)
+        {
+            Apply(
+                new Events.PictureAddedToAClassifiedAd
+                {
+                    PictureId = new Guid(),
+                    ClassifiedAdId = AggregateId,
+                    Url = pictureUri.ToString(),
+                    Height = size.Height,
+                    Width = size.Width,
+                    Order = NewPictureOrder()
+                }
+            );
+
+            int NewPictureOrder()
+                => Pictures.Any()
+                    ? Pictures.Max(x => x.Order) + 1
+                    : 0;
+        }
+
+        public void ResizePicture(PictureId pictureId, PictureSize newSize)
+        {
+            var picture = FindPicture(pictureId);
+            if (picture == null)
+                throw new InvalidOperationException(
+                    "Cannot resize a picture that I don't have"
+                );
+
+            picture.Resize(newSize);
+        }
 
         protected override void When(object @event)
         {
+            Picture picture;
+
             switch (@event)
             {
                 case Events.ClassifiedAdCreated e:
-                    ClassifiedAdId = new ClassifiedAdId(e.Id);
+                    AggregateId = new ClassifiedAdId(e.Id);
                     OwnerId = new UserId(e.OwnerId);
                     State = ClassifiedAdState.Inactive;
                     break;
@@ -67,31 +110,49 @@ namespace Marketplace.Domain
                 case Events.ClassifiedAdSentForReview _:
                     State = ClassifiedAdState.PendingReview;
                     break;
+
+                // picture
+                case Events.PictureAddedToAClassifiedAd e:
+                    picture = new Picture(Apply);
+                    ApplyToEntity(picture, e);
+                    Pictures.Add(picture);
+                    break;
+                case Events.ClassifiedAdPictureResized e:
+                    picture = FindPicture(new PictureId(e.PictureId));
+                    ApplyToEntity(picture, @event);
+                    break;
             }
         }
+
+        private Picture FindPicture(PictureId id)
+            => Pictures.FirstOrDefault(x => x.Id == id);
+
+        private Picture FirstPicture
+            => Pictures.OrderBy(x => x.Order).FirstOrDefault();
+
         protected override void EnsureValidState()
         {
-            var valid = ClassifiedAdId is not null &&
-                OwnerId is not null &&
+            var valid =
+                AggregateId != null &&
+                OwnerId != null &&
                 (State switch
                 {
                     ClassifiedAdState.PendingReview =>
-                        Title is not null &&
-                        Text is not null &&
-                        Price?.Amount > 0,
+                        Title != null
+                        && Text != null
+                        && Price?.Amount > 0
+                        && FirstPicture.HasCorrectSize(),
                     ClassifiedAdState.Active =>
-                        Title is not null &&
-                        Text is not null &&
-                        Price?.Amount > 0 &&
-                        ApprovedBy is not null,
+                        Title != null
+                        && Text != null
+                        && Price?.Amount > 0
+                        && FirstPicture.HasCorrectSize()
+                        && ApprovedBy != null,
                     _ => true
                 });
 
             if (!valid)
-            {
-                throw new InvalidEntityStateException(
-                    this, $"Post-checks failed in state {State}");
-            }
+                throw new InvalidEntityStateException(this, $"Post-checks failed in state {State}");
         }
 
         public enum ClassifiedAdState

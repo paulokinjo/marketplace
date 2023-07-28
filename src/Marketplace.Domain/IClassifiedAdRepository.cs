@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
-
-namespace Marketplace.Domain
+﻿namespace Marketplace.Domain
 {
     public interface IClassifiedAdRepository
     {
@@ -12,6 +6,7 @@ namespace Marketplace.Domain
 
         Task<ClassifiedAd> Load(ClassifiedAdId id);
 
-        Task Save(ClassifiedAd entity);
+        Task Add(ClassifiedAd entity);
+        Task Update(ClassifiedAd classifiedAd);
     }
 }

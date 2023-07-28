@@ -4,7 +4,8 @@ namespace Marketplace.Domain
 {
     public sealed class ClassifiedAdId : Value<ClassifiedAdId>
     {
-        private readonly Guid value;
+        public Guid Value { get; protected set; }
+
 
         public ClassifiedAdId(Guid value)
         {
@@ -14,10 +15,15 @@ namespace Marketplace.Domain
                     "Classified Ad id cannot be empty");
             }
 
-            this.value = value;
+            this.Value = value;
         }
 
-        public static implicit operator Guid(ClassifiedAdId self) => self.value;
+        public static implicit operator Guid(ClassifiedAdId self) => self.Value;
         public static implicit operator ClassifiedAdId(Guid self) => self;
+
+        public ClassifiedAdId()
+        {
+
+        }
     }
 }
